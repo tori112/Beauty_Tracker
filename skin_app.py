@@ -1,29 +1,19 @@
 print("Начало выполнения skin_app.py")
-from utils import list_to_text, custom_tokenizer
-
-import streamlit as st
-from model_deploy import SkincareModel
-import pandas as pd
-from pdf import generate_pdf_report
-
-print("Импорты завершены, создаём SkincareModel...")
-
-# Инициализация модели
-model = SkincareModel()
-model.load_model()
-
-print("SkincareModel создан и загружен")
 import streamlit as st
 import json
 import os
 from datetime import datetime
 import uuid
 import spacy
-from model_deploy import SkincareModel, list_to_text, custom_tokenizer
-from pdf import generate_pdf_report
+import pandas as pd
 import gdown
 from PIL import Image
 import base64
+from utils import list_to_text, custom_tokenizer
+from model_deploy import SkincareModel
+from pdf import generate_pdf_report
+
+print("Импорты завершены, создаём SkincareModel...")
 
 # ==================== КОНСТАНТЫ ====================
 SKIN_TYPES = ['Нормальная', 'Сухая', 'Жирная', 'Не уверен(а)']
@@ -44,7 +34,6 @@ def set_custom_style():
     st.markdown(
         f"""
         <style>
-        /* Основные стили */
         .stApp {{
             background: linear-gradient(rgba(255, 245, 245, 0.9), rgba(255, 245, 245, 0.95)), 
                        url('data:image/jpg;base64,{image_to_base64(BACKGROUND_IMAGE_PATH)}');
@@ -54,8 +43,6 @@ def set_custom_style():
             color: #333333 !important;
             font-family: 'Arial', sans-serif;
         }}
-        
-        /* Контейнеры */
         .block-container {{
             background-color: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
@@ -64,22 +51,16 @@ def set_custom_style():
             border: 1px solid #FF9999;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }}
-        
-        /* Заголовки */
         h1, h2, h3, h4, h5, h6 {{
             color: #2D3436 !important;
             font-weight: 600 !important;
         }}
-        
-        /* Текст */
         body, p, label, .stTextInput>label, .stSelectbox>label, 
         .stMultiselect>label, .stRadio>label, .stCheckbox>label {{
             color: #333333 !important;
             font-weight: 500 !important;
             font-size: 1.1em !important;
         }}
-        
-        /* Поля ввода */
         .stTextInput>div>div>input {{
             background-color: #FFFFFF !important;
             border: 1px solid #FF9999 !important;
@@ -88,8 +69,6 @@ def set_custom_style():
             color: #333333 !important;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }}
-        
-        /* Выпадающие списки (включая multiselect) */
         .stSelectbox>div>div, .stMultiSelect>div>div {{
             background-color: #FFFFFF !important;
             border: 1px solid #FF9999 !important;
@@ -108,7 +87,6 @@ def set_custom_style():
             background-color: #FF9999 !important;
             color: #FFFFFF !important;
         }}
-        /* Дополнительно для multiselect: исправляем фон и текст */
         .stMultiSelect [data-baseweb="select"]>div {{
             background-color: #FFFFFF !important;
             color: #333333 !important;
@@ -131,8 +109,6 @@ def set_custom_style():
             background-color: #FF9999 !important;
             color: #FFFFFF !important;
         }}
-        
-        /* Радио-кнопки (типы кожи) */
         .stRadio>label {{
             color: #333333 !important;
             background-color: rgba(255, 255, 255, 0.9) !important;
@@ -140,8 +116,6 @@ def set_custom_style():
             border-radius: 8px !important;
             margin-bottom: 8px !important;
         }}
-        
-        /* Кнопки */
         .stButton>button {{
             background-color: #6C5CE7 !important;
             color: white !important;
@@ -155,8 +129,6 @@ def set_custom_style():
             transform: scale(1.05);
             background-color: #5A4BCE !important;
         }}
-        
-        /* Кнопка "Скачать PDF" */
         .stDownloadButton>button {{
             background-color: #FF9999 !important;
             color: white !important;
@@ -170,13 +142,9 @@ def set_custom_style():
             transform: scale(1.05);
             background-color: #FF8080 !important;
         }}
-        
-        /* Прогресс-бар */
         .stProgress>div>div>div {{
             background-color: #FF9999 !important;
         }}
-        
-        /* Элементы формы */
         .stForm {{
             background-color: transparent !important;
         }}
@@ -195,11 +163,10 @@ def image_to_base64(image_path):
 # ==================== МОДЕЛИ ====================
 @st.cache_resource
 def load_spacy_model():
-    try:
-        return spacy.load("ru_core_news_sm")
-    except OSError:
-        os.system("python -m spacy download ru_core_news_sm")
-        return spacy.load("ru_core_news_sm")
+    print("Загружаем ru_core_news_sm...")
+    nlp = spacy.load("ru_core_news_sm")
+    print("ru_core_news_sm загружен")
+    return nlp
 
 @st.cache_resource
 def load_model():
@@ -207,17 +174,29 @@ def load_model():
         os.makedirs("models", exist_ok=True)
         
         t5_folder = "models/ruT5"
-        if not os.path.exists(t5_folder):
+        required_files = [
+            "spiece.model", "training_args.bin", "tokenizer_config.json",
+            "generation_config.json", "config.json",
+            "added_tokens.json", "special_tokens_map.json", "model.safetensors"
+        ]
+        all_files_present = all(os.path.exists(os.path.join(t5_folder, f)) for f in required_files)
+
+        if not all_files_present:
+            print("Скачиваем T5 модель...")
             t5_url = "https://drive.google.com/drive/folders/1_zIAEkqBeR8_yS6AyfIzjLNZpNtWULfW"
             gdown.download_folder(t5_url, output=t5_folder, quiet=False)
+            print("T5 модель скачана")
 
         pkl_path = "models/best_models.pkl"
         if not os.path.exists(pkl_path):
+            print("Скачиваем best_models.pkl...")
             pkl_url = "https://drive.google.com/uc?id=1SdvXJDBxrUS_d_Y0p5qlyU1Cw1ONc5wg"
             gdown.download(pkl_url, pkl_path, quiet=False)
+            print("best_models.pkl скачан")
 
         model = SkincareModel(model_path=t5_folder, pkl_path=pkl_path)
         model.load_model()
+        print("SkincareModel создан и загружен")
         return model
     except Exception as e:
         st.error(f"Ошибка загрузки модели: {str(e)}")
@@ -356,14 +335,14 @@ def show_recommendations():
         st.error("Данные не найдены! Заполните анкету сначала.")
         st.stop()
     
-    st.progress(100)  # Прогресс-бар на 100% после получения рекомендаций
+    st.progress(100)
     st.markdown(f"<p style='text-align: center; color: #FF9999; font-weight: 500;'>Готово, {st.session_state.responses.get('name', 'Друг')}!</p>", unsafe_allow_html=True)
     
     try:
         col1, col2 = st.columns([1, 2])
         with col1:
             image = Image.open(BACKGROUND_IMAGE_PATH)
-            st.image(image, use_column_width=True)  # Исправлено ранее
+            st.image(image, use_column_width=True)
         with col2:
             st.markdown("""
             <div style="padding: 1rem;">
@@ -381,7 +360,6 @@ def show_recommendations():
     
     with st.spinner("Формируем рекомендации..."):
         try:
-            # Преобразуем симптомы и эффекты в строку перед передачей
             user_data = st.session_state.responses.copy()
             user_data['symptoms'] = list_to_text(user_data['symptoms'] + user_data['effects'])
             
@@ -414,17 +392,11 @@ def show_recommendations():
             st.error(f"Ошибка при формировании рекомендаций: {str(e)}")
             return
     
-    # Добавляем кнопку для сохранения отчёта в PDF
     if st.button("Сохранить отчёт в PDF", use_container_width=True):
         try:
-            # Добавляем session_id в user_data
             user_data = st.session_state.responses.copy()
             user_data['session_id'] = st.session_state.session_id
-            
-            # Генерируем PDF
             pdf_path = generate_pdf_report(user_data, st.session_state.recommendations)
-            
-            # Читаем PDF и предоставляем его для скачивания
             with open(pdf_path, "rb") as f:
                 pdf_data = f.read()
             st.download_button(
@@ -443,17 +415,21 @@ def show_recommendations():
 
 # ==================== ЗАПУСК ====================
 if __name__ == "__main__":
+    print("Начало основного блока")
     if not os.path.exists("assets"):
         os.makedirs("assets")
     
     set_custom_style()
+    print("Стили установлены")
     nlp = load_spacy_model()
+    print("Spacy загружен")
     
     if st.session_state.get('page', 'questionnaire') == "questionnaire":
         main_questionnaire()
     else:
         show_recommendations()
     
+    print("Конец основного блока")
     st.markdown("---")
     st.markdown(
         """
