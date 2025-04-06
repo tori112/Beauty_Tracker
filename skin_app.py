@@ -1,7 +1,8 @@
 print("Начало выполнения skin_app.py")
 
-
-
+import streamlit as st
+import os
+from model_deploy import SkincareModel
 print("Импорты завершены, создаём SkincareModel...")
 
 # Инициализация модели
