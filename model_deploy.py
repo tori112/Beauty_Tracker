@@ -77,6 +77,10 @@ class SkincareModel:
                     quiet=False
                 )
                 print("T5 модель успешно скачана.")
+                # Добавляем отладку: что находится в папке?
+                print("Содержимое папки models/ruT5:")
+                for root, dirs, files in os.walk(self.model_path):
+                    print(f"Путь: {root}, Файлы: {files}")
             
             # Если pkl файл не загружен
             if not os.path.exists(self.pkl_path):
@@ -144,25 +148,34 @@ class SkincareModel:
         """Загружает все необходимые модели."""
         try:
             # Скачиваем модели, если их нет
+            print("Попытка скачать модели...")
             self._download_models()
             
             # Загружаем T5 модель
-            self.tokenizer = T5Tokenizer.from_pretrained(
-                self.model_path, 
-                legacy=False, 
-                clean_up_tokenization_spaces=True  # Убираем предупреждение
-            )
-            self.model = T5ForConditionalGeneration.from_pretrained(self.model_path)
-            print("Модель ruT5-base загружена.")
+            print(f"Попытка загрузки T5 модели из {self.model_path}...")
+            try:
+                self.tokenizer = T5Tokenizer.from_pretrained(
+                    self.model_path, 
+                    legacy=False, 
+                    clean_up_tokenization_spaces=True
+                )
+                print("Токенизатор T5 успешно загружен.")
+                self.model = T5ForConditionalGeneration.from_pretrained(self.model_path)
+                print("Модель ruT5-base успешно загружена.")
+            except Exception as e:
+                print(f"Ошибка загрузки T5 модели: {str(e)}")
+                self.tokenizer = None
+                self.model = None
             
             # Загружаем классификатор
             try:
+                print("Попытка загрузки классификатора и регрессора...")
                 models = joblib.load(self.pkl_path)
                 self.classifier = models.get('best_classifier')
                 self.regressor = models.get('best_regressor')
                 self.vectorizer = models.get('preprocessor')
                 self.label_encoders = models.get('label_encoders', {})
-                print("Классификатор и регрессор загружены.")
+                print("Классификатор и регрессор успешно загружены.")
             except Exception as e:
                 print(f"Ошибка загрузки классификатора и регрессора: {str(e)}")
                 self.classifier = None
@@ -174,7 +187,7 @@ class SkincareModel:
             print("Все модели успешно загружены")
             
         except Exception as e:
-            print(f"Ошибка загрузки моделей: {str(e)}")
+            print(f"Общая ошибка загрузки моделей: {str(e)}")
             self.is_trained = False
 
     def _calculate_similarity(self, text1, text2):
