@@ -1,8 +1,11 @@
 print("Начало выполнения skin_app.py")
+from utils import list_to_text, custom_tokenizer
 
 import streamlit as st
-import os
 from model_deploy import SkincareModel
+import pandas as pd
+from pdf import generate_pdf_report
+
 print("Импорты завершены, создаём SkincareModel...")
 
 # Инициализация модели
@@ -197,16 +200,6 @@ def load_spacy_model():
     except OSError:
         os.system("python -m spacy download ru_core_news_sm")
         return spacy.load("ru_core_news_sm")
-
-def list_to_text(x):
-    """Преобразует список строк в строку."""
-    if isinstance(x, list):
-        return ' '.join(x)
-    return str(x)
-
-def custom_tokenizer(x):
-    """Разбивает строку на слова по пробелам."""
-    return x.split()
 
 @st.cache_resource
 def load_model():

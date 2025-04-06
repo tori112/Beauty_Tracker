@@ -7,14 +7,8 @@ import re
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from utils import list_to_text, custom_tokenizer
 
-def list_to_text(x):
-    """Преобразует pandas.Series со списками строк в pandas.Series со строками."""
-    return x.apply(lambda lst: ' '.join(lst))
-
-def custom_tokenizer(x):
-    """Разбивает строку на слова по пробелам."""
-    return x.split()
 
 class SkincareModel:
     def __init__(self, 
