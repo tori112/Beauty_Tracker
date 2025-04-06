@@ -248,7 +248,7 @@ class SkincareModel:
                         'problem': prob,
                         'skin_type': skin_type,
                         'age_range': age_range,
-                        'symptoms': symptoms_str  # Передаём как строку
+                        'symptoms': [symptoms_str]  # Передаём как строку
                     }])
                     
                     print(f"Input DataFrame: {input_df}")
