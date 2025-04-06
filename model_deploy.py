@@ -184,11 +184,11 @@ class SkincareModel:
     Противопоказания: активные воспаления, купероз, онкология
     Ожидаемые результаты: уменьшение чёрных точек, гладкая текстура кожи
 
-    [Контекст] Дополнительные симптомы: {', '.join(context['symptoms'] if isinstance(context['symptoms'], list) else context['symptoms'].split())}
+    [Контекст] Дополнительные симптомы: {list_to_text(context['symptoms'])}
     """
 
     def _validate_generation(self, generated_text, context):
-        return True  # Валидация отключена, так как similarity удалён
+        return True  # Валидация отключена
 
     def _postprocess_generated_text(self, generated_text, method, type_):
         for cat, types in self.treatment_categories.items():
@@ -228,11 +228,11 @@ class SkincareModel:
 
     def get_recommendations(self, user_data):
         skin_type = user_data.get('skin_type', 'Не определён')
-        symptoms = user_data.get('symptoms', [])
-        effects = user_data.get('effects', [])
+        symptoms = user_data.get('symptoms', [])  # Ожидаем список
+        effects = user_data.get('effects', [])    # Ожидаем список
         age_range = user_data.get('age_range', 'Не определён')
         problem = user_data.get('problem', 'Не определён')
-        problems = problem.split(', ') if problem else (symptoms if isinstance(symptoms, list) else symptoms.split())
+        problems = problem.split(', ') if problem and problem != 'Не определён' else symptoms_to_problems(symptoms)
 
         recommendations = []
         self.used_combinations = set()
@@ -240,21 +240,26 @@ class SkincareModel:
         if self.classifier and self.regressor and self.label_encoders and self.vectorizer:
             try:
                 for prob in problems:
-                    symptoms_str = symptoms if isinstance(symptoms, str) else ' '.join(symptoms)
+                    if not prob:
+                        continue
                     input_df = pd.DataFrame([{
                         'problem': prob,
                         'skin_type': skin_type,
                         'age_range': age_range,
-                        'symptoms': symptoms_str
+                        'symptoms': symptoms  # Передаём список, Pipeline обработает
                     }])
                     
-                    if isinstance(self.classifier, dict):
-                        processed = self.vectorizer.transform(input_df)
+                    print(f"Input DataFrame: {input_df}")
+                    
+                    processed = self.vectorizer.transform(input_df)
+                    print(f"Processed data shape: {processed.shape}")
+                    
+                    if isinstance(self.classifier, dict):  # Для XGBoost и CatBoost
                         method_probs = self.classifier['method'].predict_proba(processed)[0]
                         type_probs = self.classifier['type'].predict_proba(processed)[0]
                         effectiveness_probs = self.classifier['effectiveness'].predict_proba(processed)[0]
-                    else:
-                        cat_pred = self.classifier.predict_proba(input_df)
+                    else:  # Для остальных моделей
+                        cat_pred = self.classifier.predict_proba(processed)
                         method_probs = cat_pred[0]
                         type_probs = cat_pred[1]
                         effectiveness_probs = cat_pred[2]
@@ -268,7 +273,7 @@ class SkincareModel:
                     effectiveness_idx = np.argmax(effectiveness_probs)
                     effectiveness = self.label_encoders['effectiveness'].inverse_transform([effectiveness_idx])[0]
                     
-                    course_duration = int(self.regressor.predict(input_df)[0])
+                    course_duration = int(self.regressor.predict(processed)[0])
                     
                     if method == 'Массаж':
                         course_duration = min(course_duration, 30)
@@ -303,7 +308,7 @@ class SkincareModel:
             except Exception as e:
                 print(f"Ошибка предсказания: {str(e)}")
                 for prob in problems:
-                    if prob in self.problem_to_recommendation:
+                    if prob and prob in self.problem_to_recommendation:
                         for rec in self.problem_to_recommendation[prob]:
                             rec_copy = rec.copy()
                             rec_copy['problems'] = [prob]
@@ -314,7 +319,7 @@ class SkincareModel:
         else:
             print("Классификатор или регрессор не загружены. Используем дефолтные правила.")
             for prob in problems:
-                if prob in self.problem_to_recommendation:
+                if prob and prob in self.problem_to_recommendation:
                     for rec in self.problem_to_recommendation[prob]:
                         rec_copy = rec.copy()
                         rec_copy['problems'] = [prob]
@@ -327,7 +332,7 @@ class SkincareModel:
             context = {
                 'skin_type': skin_type,
                 'problem': problem,
-                'symptoms': symptoms,
+                'symptoms': symptoms,  # Список для генерации
                 'effects': effects,
                 'type': recommendation['type']
             }

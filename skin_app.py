@@ -176,7 +176,7 @@ def load_model():
         t5_folder = "models/ruT5"
         required_files = [
             "spiece.model", "training_args.bin", "tokenizer_config.json",
-            "generation_config.json", "config.json",
+            "generation_config.json", "spiece.model.old", "config.json",
             "added_tokens.json", "special_tokens_map.json", "model.safetensors"
         ]
         all_files_present = all(os.path.exists(os.path.join(t5_folder, f)) for f in required_files)
@@ -311,8 +311,8 @@ def main_questionnaire():
                 'name': name,
                 'age_range': age_range,
                 'skin_type': skin_type,
-                'symptoms': symptoms,
-                'effects': effects,
+                'symptoms': symptoms,  # Оставляем список
+                'effects': effects,    # Оставляем список
                 'problem': ', '.join(symptoms_to_problems(symptoms))
             }
             if save_to_json(st.session_state.responses):
@@ -361,8 +361,7 @@ def show_recommendations():
     with st.spinner("Формируем рекомендации..."):
         try:
             user_data = st.session_state.responses.copy()
-            user_data['symptoms'] = list_to_text(user_data['symptoms'] + user_data['effects'])
-            
+            # Передаём данные как есть, Pipeline сам обработает
             recommendations = model.get_recommendations(user_data)
             st.session_state.recommendations = recommendations
             
@@ -371,7 +370,7 @@ def show_recommendations():
             - **Имя:** {st.session_state.responses.get('name', 'Не указано')}
             - **Возраст:** {st.session_state.responses.get('age_range', 'Не указан')}
             - **Тип кожи:** {st.session_state.responses.get('skin_type', 'Не определён')}
-            - **Основные проблемы:** {', '.join(st.session_state.responses.get('symptoms', [])) or 'Не указаны'}
+            - **Основные проблемы:** {list_to_text(st.session_state.responses.get('symptoms', [])) or 'Не указаны'}
             """)
             
             if recommendations and 'daily_routine' in recommendations:
