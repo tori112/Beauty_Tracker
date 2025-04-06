@@ -48,13 +48,14 @@ class SkincareModel:
         self.used_combinations = set()
 
         # Загрузка similarity модели (не требует скачивания)
-        self._load_similarity_model()
+        # self._load_similarity_model()
 
         # Инициализация problem_to_recommendation и других атрибутов
         self._initialize_attributes()
 
     def _load_similarity_model(self):
         """Загружает модель для расчета схожести текстов"""
+        print("Начало загрузки similarity модели...")
         try:
             self.similarity_model = SentenceTransformer(
                 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
@@ -64,12 +65,17 @@ class SkincareModel:
         except Exception as e:
             print(f"Ошибка загрузки similarity модели: {str(e)}")
             self.similarity_model = None
+        print("Завершение загрузки similarity модели.")
 
     def _download_models(self):
         """Скачивает модели с Google Drive при необходимости"""
         try:
-            # Если T5 модель не загружена
-            if not os.path.exists(self.model_path):
+            # Проверяем, существует ли папка T5 и содержит ли она нужные файлы
+            required_files = ['pytorch_model.bin', 'config.json', 'tokenizer.json']
+            t5_files_present = all(os.path.exists(os.path.join(self.model_path, f)) for f in required_files)
+            print(f"Папка {self.model_path} существует: {os.path.exists(self.model_path)}")
+            print(f"Все необходимые файлы T5 присутствуют: {t5_files_present}")
+            if not os.path.exists(self.model_path) or not t5_files_present:
                 print("Скачиваем T5 модель...")
                 gdown.download_folder(
                     "https://drive.google.com/drive/folders/1_zIAEkqBeR8_yS6AyfIzjLNZpNtWULfW",
@@ -78,7 +84,7 @@ class SkincareModel:
                 )
                 print("T5 модель успешно скачана.")
                 # Добавляем отладку: что находится в папке?
-                print("Содержимое папки models/ruT5:")
+                print("Содержимое папки models/ruT5 после скачивания:")
                 for root, dirs, files in os.walk(self.model_path):
                     print(f"Путь: {root}, Файлы: {files}")
             
@@ -192,10 +198,11 @@ class SkincareModel:
 
     def _calculate_similarity(self, text1, text2):
         if self.similarity_model is None:
+            print("Similarity модель не загружена, возвращаем 0.0")
             return 0.0
         embeddings = self.similarity_model.encode([text1, text2], convert_to_tensor=True)
         return cosine_similarity(embeddings[0].cpu().numpy().reshape(1,-1), 
-                                 embeddings[1].cpu().numpy().reshape(1,-1))[0][0]
+                                embeddings[1].cpu().numpy().reshape(1,-1))[0][0]
 
     def _generate_prompt(self, recommendation, context):
         # Добавляем дополнительные ограничения в промпт
