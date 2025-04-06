@@ -1,3 +1,14 @@
+print("Начало выполнения skin_app.py")
+
+
+
+print("Импорты завершены, создаём SkincareModel...")
+
+# Инициализация модели
+model = SkincareModel()
+model.load_model()
+
+print("SkincareModel создан и загружен")
 import streamlit as st
 import json
 import os
