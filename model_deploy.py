@@ -242,14 +242,16 @@ class SkincareModel:
                 for prob in problems:
                     if not prob:
                         continue
-                    input_df = pd.DataFrame([{
-                        'problem': prob,
-                        'skin_type': skin_type,
-                        'age_range': age_range,
-                        'symptoms': symptoms  # Передаём список, Pipeline обработает
-                    }])
+                    # Создаём Series для symptoms, чтобы .apply() работал
+                    input_df = pd.DataFrame({
+                        'problem': [prob],
+                        'skin_type': [skin_type],
+                        'age_range': [age_range],
+                        'symptoms': pd.Series([symptoms])  # Series с одним списком
+                    })
                     
                     print(f"Input DataFrame: {input_df}")
+                    print(f"Symptoms type: {type(input_df['symptoms'])}")
                     
                     processed = self.vectorizer.transform(input_df)
                     print(f"Processed data shape: {processed.shape}")
