@@ -228,11 +228,11 @@ class SkincareModel:
 
     def get_recommendations(self, user_data):
         skin_type = user_data.get('skin_type', 'Не определён')
-        symptoms = user_data.get('symptoms', [])  # Ожидаем список
+        symptoms = user_data.get('symptoms', [])  # Ожидаем строку или список
         effects = user_data.get('effects', [])    # Ожидаем список
         age_range = user_data.get('age_range', 'Не определён')
         problem = user_data.get('problem', 'Не определён')
-        problems = problem.split(', ') if problem and problem != 'Не определён' else symptoms_to_problems(symptoms)
+        problems = problem.split(', ') if problem and problem != 'Не определён' else symptoms_to_problems(symptoms.split() if isinstance(symptoms, str) else symptoms)
 
         recommendations = []
         self.used_combinations = set()
@@ -242,16 +242,16 @@ class SkincareModel:
                 for prob in problems:
                     if not prob:
                         continue
-                    # Создаём Series для symptoms, чтобы .apply() работал
-                    input_df = pd.DataFrame({
-                        'problem': [prob],
-                        'skin_type': [skin_type],
-                        'age_range': [age_range],
-                        'symptoms': pd.Series([symptoms])  # Series с одним списком
-                    })
+                    # Убедимся, что symptoms — это строка
+                    symptoms_str = symptoms if isinstance(symptoms, str) else ' '.join(symptoms)
+                    input_df = pd.DataFrame([{
+                        'problem': prob,
+                        'skin_type': skin_type,
+                        'age_range': age_range,
+                        'symptoms': symptoms_str  # Передаём как строку
+                    }])
                     
                     print(f"Input DataFrame: {input_df}")
-                    print(f"Symptoms type: {type(input_df['symptoms'])}")
                     
                     processed = self.vectorizer.transform(input_df)
                     print(f"Processed data shape: {processed.shape}")
@@ -334,7 +334,7 @@ class SkincareModel:
             context = {
                 'skin_type': skin_type,
                 'problem': problem,
-                'symptoms': symptoms,  # Список для генерации
+                'symptoms': symptoms,  # Оставляем как строку для генерации
                 'effects': effects,
                 'type': recommendation['type']
             }

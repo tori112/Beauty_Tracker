@@ -361,7 +361,8 @@ def show_recommendations():
     with st.spinner("Формируем рекомендации..."):
         try:
             user_data = st.session_state.responses.copy()
-            # Передаём данные как есть, Pipeline сам обработает
+            # Преобразуем симптомы и эффекты в строку, как в старом коде
+            user_data['symptoms'] = ' '.join(user_data['symptoms'] + user_data['effects'])
             recommendations = model.get_recommendations(user_data)
             st.session_state.recommendations = recommendations
             
