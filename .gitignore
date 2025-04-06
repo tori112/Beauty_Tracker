@@ -1,0 +1,16 @@
+# Игнорировать кэш и временные файлы
+__pycache__/
+*.pyc
+*.ipynb_checkpoints
+
+# Игнорировать пользовательские данные и отчёты
+user_data/
+reports/
+
+# Игнорировать большие файлы
+*.pth
+*.onnx
+*.pkl
+*.xlsx
+*.safetensors
+rut5base_onnx_quantized_only_archive.zip
