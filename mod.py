@@ -8,7 +8,11 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_DIR = r"D:\MIPT\IDE\knowledge_project_backup\skincare_project\deploy\models"
+import os
+
+MODEL_DIR = "models"  # Папка models в корне репозитория
+TEMPLATES_PATH = os.path.join(MODEL_DIR, "valid_templates.json")
+REGRESSOR_PATH = os.path.join(MODEL_DIR, "best_regressor_tuned_pipeline.pkl")
 
 # Словарь для вычисления method_complexity
 method_complexity_map = {

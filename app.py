@@ -42,8 +42,11 @@ def list_to_text(x):
     return ' '.join(x)  # Для обычного списка
 
 # ==================== КОНСТАНТЫ ====================
-MODEL_DIR = r"D:\MIPT\IDE\knowledge_project_backup\skincare_project\deploy\models"
+import os
+
+MODEL_DIR = "models"  # Папка models в корне репозитория
 TEMPLATES_PATH = os.path.join(MODEL_DIR, "valid_templates.json")
+REGRESSOR_PATH = os.path.join(MODEL_DIR, "best_regressor_tuned_pipeline.pkl")
 
 SKIN_TYPES = ['Нормальная', 'Сухая', 'Жирная', 'Не уверен(а)']
 AGE_RANGES = ['18-25', '25-35', '35-45', '45+']
