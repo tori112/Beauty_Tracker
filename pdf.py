@@ -39,9 +39,14 @@ def generate_pdf_report(user_data, recommendations, session_id):
         f"{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     )
     
+    # Увеличиваем поля страницы, чтобы текст не обрезался
     doc = SimpleDocTemplate(
         filename,
         pagesize=A4,
+        leftMargin=36,  # Увеличиваем левое поле (было по умолчанию 72, уменьшаем до 36 пунктов = 0.5 дюйма)
+        rightMargin=36,  # Увеличиваем правое поле
+        topMargin=36,  # Увеличиваем верхнее поле
+        bottomMargin=36,  # Увеличиваем нижнее поле
         encoding='utf-8'
     )
     
@@ -52,22 +57,36 @@ def generate_pdf_report(user_data, recommendations, session_id):
     
     # Настраиваем стиль для основного текста
     styles['Normal'].textColor = HexColor('#333333')
-    styles['Normal'].leading = 14  # Увеличиваем межстрочный интервал
-    
+    styles['Normal'].fontSize = 10  # Уменьшаем размер шрифта для лучшей читаемости
+    styles['Normal'].leading = 14  # Межстрочный интервал
+    styles['Normal'].wordWrap = 'CJK'  # Включаем перенос текста для длинных строк (CJK работает для кириллицы)
+
+    # Стиль для заголовков
+    styles['Title'].fontSize = 16
+    styles['Title'].spaceAfter = 12
+    styles['Heading2'].fontSize = 12
+    styles['Heading2'].spaceAfter = 8
+
     # Стиль для заголовков рекомендаций
     styles.add(ParagraphStyle(
         name='RecommendationTitle',
         parent=styles['Heading2'],
-        fontSize=12,
-        spaceAfter=8,
+        fontSize=11,
+        spaceAfter=6,
         textColor=HexColor('#4A4A4A')
     ))
     
+    # Стиль для списков (проблемы, противопоказания)
+    styles['Bullet'].fontSize = 10
+    styles['Bullet'].leftIndent = 20  # Уменьшаем отступ для списков, чтобы текст не выходил за границы
+    styles['Bullet'].spaceAfter = 4
+    styles['Bullet'].wordWrap = 'CJK'
+
     # Стиль для сноски
     footnote_style = styles['Normal'].clone('Footnote')
-    footnote_style.fontSize = 9
+    footnote_style.fontSize = 8
     footnote_style.textColor = HexColor('#666666')
-    footnote_style.leading = 12
+    footnote_style.leading = 10
     
     story = []
     
@@ -76,7 +95,7 @@ def generate_pdf_report(user_data, recommendations, session_id):
     story.append(title)
     story.append(Spacer(1, 12))
     
-    # Профиль пользователя (логические блоки)
+    # Профиль пользователя
     story.append(Paragraph("<b>Ваш профиль:</b>", styles['Heading2']))
     story.append(Spacer(1, 6))
     
@@ -98,10 +117,12 @@ def generate_pdf_report(user_data, recommendations, session_id):
     story.append(Paragraph(profile_items[-1], styles['Normal']))
     problems = user_data.get('problem', 'Не указаны').split(', ')
     for problem in problems:
+        # Убедимся, что каждая проблема не слишком длинная
         story.append(Paragraph(f"• {problem}", styles['Bullet']))
     
     # Аллергии
-    story.append(Paragraph(f"<b>Аллергии:</b> {', '.join(user_data.get('allergies', [])) or 'Не указаны'}", styles['Normal']))
+    allergies = ', '.join(user_data.get('allergies', [])) or 'Не указаны'
+    story.append(Paragraph(f"<b>Аллергии:</b> {allergies}", styles['Normal']))
     story.append(Spacer(1, 24))
     
     # Рекомендации
@@ -135,22 +156,20 @@ def generate_pdf_report(user_data, recommendations, session_id):
             # Обрабатываем противопоказания
             contraindications = item.get('contraindications', ['Не указаны'])
             if isinstance(contraindications, list):
-                # Если это список, преобразуем его в строку
                 contraindications = ', '.join(contraindications)
-            # Удаляем лишние запятые и пробелы
             contraindications = contraindications.replace(',,', ',').strip()
-            # Заменяем запятые на тег <br/> для корректного переноса в PDF
-            contraindications = contraindications.replace(', ', ',<br/>')
+            # Переносим длинные строки противопоказаний
+            contraindications = '<br/>'.join([contraindications[i:i+80] for i in range(0, len(contraindications), 80)])
 
             details = [
                 f"Инструкция:<br/>{instruction}",
                 f"Эффективность: {item.get('effectiveness', 'Средняя')}%",
-                f"Противопоказания: {contraindications}",
+                f"Противопоказания:<br/>{contraindications}",
                 f"Ожидаемые результаты: {item.get('expected_results', 'Не указаны')}"
             ]
             for detail in details:
                 story.append(Paragraph(detail, styles['Bullet']))
-            story.append(Spacer(1, 16))  # Увеличиваем отступ между рекомендациями
+            story.append(Spacer(1, 16))
     else:
         story.append(Paragraph("Рекомендаций пока нет.", styles['Normal']))
     
