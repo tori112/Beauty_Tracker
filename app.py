@@ -573,7 +573,7 @@ def show_recommendations():
                     'symptom': ', '.join([s for s in user_symptoms if symptoms_to_problems([s])[0] == problem]),
                     'method': rec['method'],
                     'type': rec['type'],
-                    'effectiveness': f"{rec['success_prob']}%",
+                    'success_prob': rec['success_prob'],  # Сохраняем процент для дальнейшего форматирования
                     'course_duration': rec.get('course_duration', 'Не указана'),
                     'expected_results': rec.get('expected_effect', 'Не указан'),
                     'contraindications': ', '.join(rec.get('contraindications', ['Нет'])),
@@ -615,15 +615,18 @@ def show_recommendations():
 
         # Отображаем рекомендации (используем только Markdown, разделяем блоки)
         st.markdown("### Рекомендации по уходу")
+        st.markdown("""
+        Для каждой рекомендации указана **вероятность успеха** — это процент, который показывает, насколько процедура может быть эффективной для вашей кожи. Чем выше процент, тем лучше ожидаемый результат. Эти данные основаны на анализе вашего типа кожи, возраста и симптомов.
+        """)
         if not all_recommendations:
             st.error("❌ Не удалось сформировать рекомендации. Проверьте наличие подходящих шаблонов в valid_templates.json и их структуру (обязательные поля: method, type).")
         else:
             for rec in all_recommendations:
-                with st.expander(f"💡 {rec['problem']} ({rec['method']} - {rec['type']}) ⭐ {rec['effectiveness']}", expanded=True):
+                with st.expander(f"💡 {rec['problem']} ({rec['method']} - {rec['type']}) ⭐ Вероятность успеха: {rec['success_prob']}%", expanded=True):
                     formatted_template = format_template_text(rec['template'])
                     st.markdown(f"""
 **Симптом:** {rec['symptom']}  
-**Эффективность:** {rec['effectiveness']}  
+**Вероятность успеха:** {rec['success_prob']}% (чем выше процент, тем более эффективной может быть процедура для вашей кожи)  
 **Курс:** {rec['course_duration']}  
 **Ожидаемые результаты:** {rec['expected_results']}  
 **Описание:**  
@@ -633,7 +636,7 @@ def show_recommendations():
             # Добавляем выбор процедуры
             st.markdown("#### Выберите процедуру")
             recommendation_options = [
-                f"{rec['problem']} ({rec['method']} - {rec['type']}) - Эффективность: {rec['effectiveness']}"
+                f"{rec['problem']} ({rec['method']} - {rec['type']}) - Вероятность успеха: {rec['success_prob']}%"
                 for rec in all_recommendations
             ]
             selected_recommendation = st.selectbox(

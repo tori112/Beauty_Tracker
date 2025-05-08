@@ -128,6 +128,7 @@ def generate_pdf_report(user_data, recommendations, session_id):
     # Рекомендации
     rec_title = Paragraph("<b>Ваш персональный план ухода:</b>", styles['Heading2'])
     story.append(rec_title)
+    story.append(Paragraph("Для каждой рекомендации указана вероятность успеха — процент, показывающий, насколько процедура может быть эффективной для вашей кожи. Чем выше процент, тем лучше ожидаемый результат.", styles['Normal']))
     story.append(Spacer(1, 12))
     
     daily_routine = recommendations.get('daily_routine', [])
@@ -163,7 +164,7 @@ def generate_pdf_report(user_data, recommendations, session_id):
 
             details = [
                 f"Инструкция:<br/>{instruction}",
-                f"Эффективность: {item.get('effectiveness', 'Средняя')}%",
+                f"Вероятность успеха: {item.get('success_prob', 'Средняя')}% (чем выше процент, тем более эффективной может быть процедура для вашей кожи)",
                 f"Противопоказания:<br/>{contraindications}",
                 f"Ожидаемые результаты: {item.get('expected_results', 'Не указаны')}"
             ]
